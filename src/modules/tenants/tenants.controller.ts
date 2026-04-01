@@ -13,7 +13,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import type { User } from '../users/users.repository';
 import type { Tenant } from './tenants.repository';
 import { TenantsService } from './tenants.service';
-import { AddMemberDto, CreateTenantDto } from './tenants.dto';
+import { AddMemberDto, CreateTenantDto } from './dto/tenants.dto';
 
 @Controller('tenants')
 export class TenantsController {

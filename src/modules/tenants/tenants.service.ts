@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { TenantsRepository } from './tenants.repository';
-import { CreateTenantDto } from './tenants.dto';
+import { CreateTenantDto } from './dto/tenants.dto';
 
 @Injectable()
 export class TenantsService {

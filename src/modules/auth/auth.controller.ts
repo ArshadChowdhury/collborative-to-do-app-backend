@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/commo
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
-import { LoginDto, SignupDto } from './auth.dto';
+import { LoginDto, SignupDto } from './dto/auth.dto';
 import type { User } from '../users/users.repository';
 
 @Controller('auth')
