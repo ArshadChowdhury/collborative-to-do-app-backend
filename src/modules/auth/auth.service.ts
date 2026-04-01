@@ -7,17 +7,27 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersRepository } from '../users/users.repository';
 import { LoginDto, SignupDto } from './dto/auth.dto';
+import { User } from '../users/users.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersRepo: UsersRepository,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
+  // auth.service.ts
   async signup(dto: SignupDto) {
     const existing = await this.usersRepo.findByEmail(dto.email);
     if (existing) throw new ConflictException('Email already registered');
+
+    // Auto-generate slug from display name, e.g. "John Doe" → "john_doe_x4k2"
+    const baseSlug = dto.displayName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^-|-$/g, '');
+    const tenantSlug = `${baseSlug}_${Math.random().toString(36).slice(2, 6)}`;
 
     const password_hash = await bcrypt.hash(dto.password, 12);
     const user = await this.usersRepo.create({
@@ -26,21 +36,45 @@ export class AuthService {
       display_name: dto.displayName,
     });
 
-    return this.buildTokenResponse(user.id, user.email);
+    await this.usersRepo.createTenantForUser(user.id, tenantSlug);
+
+    // in signup, replace the last return with:
+    const userWithTenant = await this.usersRepo.findById(user.id);
+    if (!userWithTenant) throw new Error('User not found after creation');
+
+    const createdTenant = userWithTenant.userTenants[0].tenant;
+    return this.buildTokenResponse(userWithTenant, createdTenant);
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, tenantSlug: string) {
     const user = await this.usersRepo.findByEmail(dto.email);
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(dto.password, user.password_hash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    return this.buildTokenResponse(user.id, user.email);
+    // Find the specific tenant the user is trying to log into
+    const userTenant = user.userTenants?.find(ut => ut.tenant?.slug === tenantSlug);
+    if (!userTenant) throw new UnauthorizedException('Access denied for this workspace');
+
+    return this.buildTokenResponse(user, userTenant.tenant);
   }
 
-  private buildTokenResponse(userId: string, email: string) {
-    const token = this.jwtService.sign({ sub: userId, email });
-    return { accessToken: token };
+  private buildTokenResponse(user: User, tenant: { id: string; slug: string }) {
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+
+    return {
+      accessToken: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.display_name,
+        tenant: {
+          id: tenant.id,
+          slug: tenant.slug,
+        },
+      },
+    };
   }
+
 }

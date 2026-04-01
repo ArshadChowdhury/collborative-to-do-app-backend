@@ -10,9 +10,10 @@ export class SignupDto {
   password: string;
 
   @IsString()
-  @MinLength(2)
+  @MinLength(1)
   @MaxLength(100)
   displayName: string;
+
 }
 
 export class LoginDto {

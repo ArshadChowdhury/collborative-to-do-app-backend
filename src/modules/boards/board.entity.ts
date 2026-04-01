@@ -16,6 +16,9 @@ export class Board {
   name: string;
 
   @Column({ nullable: true, type: 'text' })
+  color: string;
+
+  @Column({ nullable: true, type: 'text' })
   description: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

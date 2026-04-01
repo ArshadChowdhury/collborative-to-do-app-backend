@@ -6,6 +6,11 @@ export class CreateBoardDto {
   @MaxLength(255)
   name: string;
 
+  @IsString()
+  @MinLength(1)
+  @MaxLength(255)
+  color?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(1000)
