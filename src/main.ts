@@ -1,39 +1,3 @@
-// // import { NestFactory } from '@nestjs/core';
-// // import { AppModule } from './app.module';
-
-// // async function bootstrap() {
-// //   const app = await NestFactory.create(AppModule);
-// //   await app.listen(process.env.PORT ?? 3000);
-// // }
-// // bootstrap();
-
-
-// import { NestFactory } from '@nestjs/core';
-// import { ValidationPipe } from '@nestjs/common';
-// import { AppModule } from './app.module';
-
-// async function bootstrap() {
-//   const app = await NestFactory.create(AppModule);
-
-//   app.setGlobalPrefix('api/v1');
-
-//   app.useGlobalPipes(
-//     new ValidationPipe({
-//       whitelist: true,       // strip unknown properties
-//       forbidNonWhitelisted: true,
-//       transform: true,
-//     }),
-//   );
-
-//   app.enableCors({ origin: '*' });
-
-//   const port = process.env.PORT ?? 3000;
-//   await app.listen(port);
-//   console.log(`🚀 Server running on http://localhost:${port}/api/v1`);
-// }
-
-// bootstrap();
-
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { Pool } from 'pg';
@@ -64,12 +28,10 @@ async function runMigrations() {
 
   for (const file of files) {
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    console.log(`[Migrations] Running: ${file}`);
     await pool.query(sql);
   }
 
   await pool.end();
-  console.log('[Migrations] All migrations complete.');
 }
 
 async function bootstrap() {
@@ -78,7 +40,6 @@ async function bootstrap() {
   const dotenv = await import('dotenv');
   dotenv.config();
 
-  console.log('[DB] Running migrations...');
   try {
     await runMigrations();
   } catch (err) {
@@ -102,7 +63,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`🚀 Server running on http://localhost:${port}/api/v1`);
+  console.log(`Server running on http://localhost:${port}/api/v1`);
 }
 
 bootstrap();

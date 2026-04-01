@@ -17,12 +17,10 @@ async function runMigrations() {
   for (const file of files) {
     if (!file.endsWith('.sql')) continue;
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    console.log(`Running migration: ${file}`);
     await pool.query(sql);
   }
 
   await pool.end();
-  console.log('Migrations complete.');
 }
 
 runMigrations().catch((err) => {

@@ -71,19 +71,14 @@ export class TodosGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 client.handshake.auth?.token ||
                 client.handshake.headers?.authorization?.replace('Bearer ', '');
 
-            console.log('[handleConnection] token present:', !!token);
-
             if (!token) {
-                console.log('[handleConnection] no token — disconnecting');
                 client.disconnect();
                 return;
             }
 
             const payload = this.jwtService.verify(token);
-            console.log('[handleConnection] jwt payload:', payload);
 
             const user = await this.usersRepo.findById(payload.sub);
-            console.log('[handleConnection] user found:', user?.email);
 
             if (!user) {
                 client.disconnect();
@@ -93,7 +88,6 @@ export class TodosGateway implements OnGatewayConnection, OnGatewayDisconnect {
             client.data.user = user;
             this.logger.log(`Client connected: ${client.id} (${user.email})`);
         } catch (err) {
-            console.log('[handleConnection] error:', err);  // ← was silently swallowed
             client.disconnect();
         }
     }
@@ -130,8 +124,6 @@ export class TodosGateway implements OnGatewayConnection, OnGatewayDisconnect {
             });
         }
 
-        console.log('[board:join] user', user?.email);
-
         if (!user) {
             client.emit('error', { message: 'Authentication timeout' });
             return;
@@ -148,7 +140,6 @@ export class TodosGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const room = this.buildRoom(payload.tenantSlug, payload.boardId);
         await client.join(room);
-        console.log('[board:join] joined room', room);
         client.emit('board:joined', { room });
     }
 
@@ -166,7 +157,6 @@ export class TodosGateway implements OnGatewayConnection, OnGatewayDisconnect {
     /** Called by TodosService to broadcast changes to the room */
     broadcastToBoard(tenantSlug: string, boardId: string, event: TodoEvent, data: any) {
         const room = this.buildRoom(tenantSlug, boardId);
-        console.log(`[broadcast] event=${event} room=${room}`);
         this.server.to(room).emit(event, data);  // ← remove the .adapter.rooms line
     }
 

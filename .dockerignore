@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output
+dist
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dev/test files
+test
+coverage
+*.spec.ts
+*.test.ts
+
+# Git
+.git
+.gitignore
+
+# Editor
+.vscode
+.idea
+*.log
+
+# Docker files
+Dockerfile
+docker-compose.yml
