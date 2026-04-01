@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
+import { TenantConnectionService } from '../../database/tenant-connection.service';
 import { TenantsRepository } from './tenants.repository';
 import { CreateTenantDto } from './dto/tenants.dto';
 
@@ -11,7 +11,7 @@ import { CreateTenantDto } from './dto/tenants.dto';
 export class TenantsService {
   constructor(
     private readonly tenantsRepo: TenantsRepository,
-    private readonly db: DatabaseService,
+    private readonly tenantConn: TenantConnectionService,
   ) {}
 
   async create(dto: CreateTenantDto, ownerUserId: string) {
@@ -20,12 +20,11 @@ export class TenantsService {
 
     const tenant = await this.tenantsRepo.create(dto);
 
-    // provision dedicated schema + tables for this tenant
-    await this.db.createTenantSchema(dto.slug);
+    // Initialise a DataSource for this tenant — TypeORM synchronize:true
+    // will auto-create boards + todos tables in the tenant schema
+    await this.tenantConn.getConnection(dto.slug);
 
-    // creator becomes owner
     await this.tenantsRepo.addMember(tenant.id, ownerUserId, 'owner');
-
     return tenant;
   }
 

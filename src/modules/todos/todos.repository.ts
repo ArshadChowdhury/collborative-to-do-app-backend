@@ -1,50 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
+import { TenantConnectionService } from '../../database/tenant-connection.service';
+import { Todo, TodoStatus } from './todo.entity';
 
-export type TodoStatus = 'todo' | 'in-progress' | 'done';
-
-export interface Todo {
-  id: string;
-  board_id: string;
-  title: string;
-  description: string | null;
-  status: TodoStatus;
-  assignee_id: string | null;
-  created_by: string;
-  created_at: Date;
-  updated_at: Date;
-}
+export { Todo };
 
 @Injectable()
 export class TodosRepository {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly tenantConn: TenantConnectionService) {}
 
   async findByBoard(tenantSlug: string, boardId: string): Promise<Todo[]> {
-    return this.db.withTenantClient(tenantSlug, async (client) => {
-      const result = await client.query(
-        `SELECT t.*,
-                u.display_name AS assignee_name
-         FROM todos t
-         LEFT JOIN public.users u ON u.id = t.assignee_id
-         WHERE t.board_id = $1
-         ORDER BY t.created_at ASC`,
-        [boardId],
-      );
-      return result.rows;
+    const repo = await this.tenantConn.getTodoRepository(tenantSlug);
+    return repo.find({
+      where: { board_id: boardId },
+      order: { created_at: 'ASC' },
     });
   }
 
   async findById(tenantSlug: string, id: string): Promise<Todo | null> {
-    return this.db.withTenantClient(tenantSlug, async (client) => {
-      const result = await client.query(
-        `SELECT t.*, u.display_name AS assignee_name
-         FROM todos t
-         LEFT JOIN public.users u ON u.id = t.assignee_id
-         WHERE t.id = $1`,
-        [id],
-      );
-      return result.rows[0] ?? null;
-    });
+    const repo = await this.tenantConn.getTodoRepository(tenantSlug);
+    return repo.findOne({ where: { id } });
   }
 
   async create(
@@ -58,22 +32,16 @@ export class TodosRepository {
       created_by: string;
     },
   ): Promise<Todo> {
-    return this.db.withTenantClient(tenantSlug, async (client) => {
-      const result = await client.query(
-        `INSERT INTO todos (board_id, title, description, status, assignee_id, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING *`,
-        [
-          data.board_id,
-          data.title,
-          data.description ?? null,
-          data.status ?? 'todo',
-          data.assignee_id ?? null,
-          data.created_by,
-        ],
-      );
-      return result.rows[0];
+    const repo = await this.tenantConn.getTodoRepository(tenantSlug);
+    const todo = repo.create({
+      board_id: data.board_id,
+      title: data.title,
+      description: data.description ?? null,
+      status: data.status ?? 'todo',
+      assignee_id: data.assignee_id ?? null,
+      created_by: data.created_by,
     });
+    return repo.save(todo);
   }
 
   async update(
@@ -86,36 +54,22 @@ export class TodosRepository {
       assignee_id?: string | null;
     },
   ): Promise<Todo | null> {
-    return this.db.withTenantClient(tenantSlug, async (client) => {
-      const result = await client.query(
-        `UPDATE todos
-         SET title       = COALESCE($2, title),
-             description = COALESCE($3, description),
-             status      = COALESCE($4, status),
-             assignee_id = CASE WHEN $5::boolean THEN $6::uuid ELSE assignee_id END,
-             updated_at  = NOW()
-         WHERE id = $1
-         RETURNING *`,
-        [
-          id,
-          data.title ?? null,
-          data.description ?? null,
-          data.status ?? null,
-          'assignee_id' in data,   // true = explicit update (even to null)
-          data.assignee_id ?? null,
-        ],
-      );
-      return result.rows[0] ?? null;
-    });
+    const repo = await this.tenantConn.getTodoRepository(tenantSlug);
+    const updatePayload: Partial<Todo> = {};
+    if (data.title !== undefined)       updatePayload.title = data.title;
+    if (data.description !== undefined) updatePayload.description = data.description;
+    if (data.status !== undefined)      updatePayload.status = data.status;
+    if ('assignee_id' in data)          updatePayload.assignee_id = data.assignee_id ?? null;
+
+    await repo.update(id, updatePayload);
+    return repo.findOne({ where: { id } });
   }
 
   async delete(tenantSlug: string, id: string): Promise<Todo | null> {
-    return this.db.withTenantClient(tenantSlug, async (client) => {
-      const result = await client.query(
-        'DELETE FROM todos WHERE id = $1 RETURNING *',
-        [id],
-      );
-      return result.rows[0] ?? null;
-    });
+    const repo = await this.tenantConn.getTodoRepository(tenantSlug);
+    const todo = await repo.findOne({ where: { id } });
+    if (!todo) return null;
+    await repo.delete(id);
+    return todo;
   }
 }

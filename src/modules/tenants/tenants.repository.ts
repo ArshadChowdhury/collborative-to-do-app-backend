@@ -1,39 +1,34 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tenant } from './tenant.entity';
+import { UserTenant } from '../../modules/users/user-tenant.entity';
+import { User } from '../../modules/users/user.entity';
 
-export interface Tenant {
-  id: string;
-  name: string;
-  slug: string;
-  created_at: Date;
-}
+export { Tenant };
 
 @Injectable()
 export class TenantsRepository {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(Tenant)
+    private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(UserTenant)
+    private readonly userTenantRepo: Repository<UserTenant>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) {}
 
   async findById(id: string): Promise<Tenant | null> {
-    const rows = await this.db.query<Tenant>(
-      'SELECT * FROM public.tenants WHERE id = $1',
-      [id],
-    );
-    return rows[0] ?? null;
+    return this.tenantRepo.findOne({ where: { id } });
   }
 
   async findBySlug(slug: string): Promise<Tenant | null> {
-    const rows = await this.db.query<Tenant>(
-      'SELECT * FROM public.tenants WHERE slug = $1',
-      [slug],
-    );
-    return rows[0] ?? null;
+    return this.tenantRepo.findOne({ where: { slug } });
   }
 
   async create(data: { name: string; slug: string }): Promise<Tenant> {
-    const rows = await this.db.query<Tenant>(
-      'INSERT INTO public.tenants (name, slug) VALUES ($1, $2) RETURNING *',
-      [data.name, data.slug],
-    );
-    return rows[0];
+    const tenant = this.tenantRepo.create(data);
+    return this.tenantRepo.save(tenant);
   }
 
   async addMember(
@@ -41,28 +36,30 @@ export class TenantsRepository {
     userId: string,
     role: 'owner' | 'admin' | 'member' = 'member',
   ): Promise<void> {
-    await this.db.query(
-      `INSERT INTO public.user_tenants (tenant_id, user_id, role)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (user_id, tenant_id) DO UPDATE SET role = $3`,
-      [tenantId, userId, role],
-    );
+    await this.userTenantRepo
+      .createQueryBuilder()
+      .insert()
+      .values({ user_id: userId, tenant_id: tenantId, role })
+      .orUpdate(['role'], ['user_id', 'tenant_id'])
+      .execute();
   }
 
   async removeMember(tenantId: string, userId: string): Promise<void> {
-    await this.db.query(
-      'DELETE FROM public.user_tenants WHERE tenant_id = $1 AND user_id = $2',
-      [tenantId, userId],
-    );
+    await this.userTenantRepo.delete({ tenant_id: tenantId, user_id: userId });
   }
 
   async getMembers(tenantId: string) {
-    return this.db.query(
-      `SELECT u.id, u.email, u.display_name, ut.role, ut.joined_at
-       FROM public.user_tenants ut
-       JOIN public.users u ON u.id = ut.user_id
-       WHERE ut.tenant_id = $1`,
-      [tenantId],
-    );
+    return this.userTenantRepo
+      .createQueryBuilder('ut')
+      .innerJoinAndSelect('ut.user', 'u')
+      .where('ut.tenant_id = :tenantId', { tenantId })
+      .select([
+        'u.id',
+        'u.email',
+        'u.display_name',
+        'ut.role',
+        'ut.joined_at',
+      ])
+      .getRawMany();
   }
 }
