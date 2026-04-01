@@ -17,7 +17,7 @@ import { CreateBoardDto, UpdateBoardDto } from './dto/boards.dto';
 @Controller('boards')
 @UseGuards(TenantGuard)
 export class BoardsController {
-  constructor(private readonly boardsService: BoardsService) {}
+  constructor(private readonly boardsService: BoardsService) { }
 
   @Get()
   findAll(@CurrentTenant() tenant: Tenant) {

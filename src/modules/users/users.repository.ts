@@ -13,13 +13,14 @@ export class UsersRepository {
     private readonly repo: Repository<User>,
     @InjectRepository(UserTenant)
     private readonly userTenantRepo: Repository<UserTenant>,
-  ) {}
+  ) { }
 
   async findById(id: string): Promise<User | null> {
+    
     return this.repo
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.userTenants', 'ut')
-      .leftJoinAndSelect('ut.tenant', 't')
+      .leftJoinAndSelect('ut.tenant', 't')   // ← this line is critical
       .where('u.id = :id', { id })
       .getOne();
   }

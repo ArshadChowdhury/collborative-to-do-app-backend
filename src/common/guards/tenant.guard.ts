@@ -14,7 +14,7 @@ export class TenantGuard implements CanActivate {
 
     if (!tenant) throw new ForbiddenException('Tenant not found');
 
-    const belongs = user?.tenants?.some((t: any) => t.id === tenant.id);
+    const belongs = user?.userTenants?.some((ut: any) => ut.tenant?.id === tenant.id);
     if (!belongs) throw new ForbiddenException('Access denied to this tenant');
 
     return true;

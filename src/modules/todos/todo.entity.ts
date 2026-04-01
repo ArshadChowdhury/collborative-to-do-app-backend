@@ -2,12 +2,9 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Board } from '../boards/board.entity';
 
 export type TodoStatus = 'todo' | 'in-progress' | 'done';
 
@@ -16,7 +13,7 @@ export class Todo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'board_id' })
+  @Column({ name: 'board_id', type: 'uuid' })
   board_id: string;
 
   @Column()
@@ -25,11 +22,7 @@ export class Todo {
   @Column({ nullable: true, type: 'text' })
   description: string | null;
 
-  @Column({
-    type: 'varchar',
-    length: 20,
-    default: 'todo',
-  })
+  @Column({ type: 'varchar', length: 20, default: 'todo' })
   status: TodoStatus;
 
   @Column({ name: 'assignee_id', nullable: true, type: 'uuid' })
@@ -43,8 +36,4 @@ export class Todo {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updated_at: Date;
-
-  @ManyToOne(() => Board, (b) => b.todos, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'board_id' })
-  board: Board;
 }
