@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DatabaseModule } from '../../database/database.module';
 import { TodosRepository } from './todos.repository';
 import { TodosService } from './todos.service';
 import { TodosController } from './todos.controller';
@@ -10,6 +11,7 @@ import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
+    DatabaseModule,
     BoardsModule,
     UsersModule,
     JwtModule.registerAsync({

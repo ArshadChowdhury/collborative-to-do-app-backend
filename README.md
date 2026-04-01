@@ -1,98 +1,234 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Multi-Tenant Collaborative Todo App — Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS + PostgreSQL backend for a Trello-inspired multi-tenant todo application with real-time collaboration via Socket.io.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Stack
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Layer | Technology |
+|---|---|
+| Framework | NestJS (TypeScript) |
+| Database | PostgreSQL 16 |
+| Auth | JWT (Bearer) via Passport |
+| Real-time | Socket.io (namespace `/boards`) |
+| Container | Docker + docker-compose |
 
-## Project setup
+---
+
+## Quick Start
+
+### Option A — Docker (recommended)
 
 ```bash
-$ pnpm install
+cp .env.example .env          # adjust JWT_SECRET at minimum
+docker-compose up --build
 ```
 
-## Compile and run the project
+The API is available at `http://localhost:3000/api/v1`.
+Migrations run automatically on container start.
+
+### Option B — Local
+
+**Prerequisites:** Node 20+, PostgreSQL 16 running locally.
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+cp .env.example .env          # fill in your DB credentials
+pnpm install
+pnpm run migrate               # runs SQL migrations
+pnpm run start:dev             # hot-reload dev server
 ```
 
-## Run tests
+---
+
+## Running Tests
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+pnpm run test              # unit tests (no DB required)
+pnpm run test:coverage     # with coverage report
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## API Reference
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+All REST routes are prefixed with `/api/v1`.
+Every protected route requires:
+```
+Authorization: Bearer <token>
+```
+Tenant-scoped routes also require:
+```
+X-Tenant-Slug: <tenant_slug>
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Auth
 
-## Resources
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/signup` | No | Register a new user |
+| POST | `/auth/login` | No | Login, receive JWT |
+| GET | `/auth/me` | Yes | Get current user profile |
 
-Check out a few resources that may come in handy when working with NestJS:
+**Signup body:**
+```json
+{ "email": "alice@acme.com", "password": "secret1234", "displayName": "Alice" }
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+**Login / Response:**
+```json
+{ "accessToken": "eyJ..." }
+```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Tenants
 
-## Stay in touch
+| Method | Path | Header | Description |
+|---|---|---|---|
+| POST | `/tenants` | — | Create tenant (caller becomes owner) |
+| GET | `/tenants/current` | X-Tenant-Slug | Get tenant info |
+| GET | `/tenants/current/members` | X-Tenant-Slug | List members |
+| POST | `/tenants/current/members` | X-Tenant-Slug | Add a member |
+| DELETE | `/tenants/current/members/:userId` | X-Tenant-Slug | Remove a member |
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+**Create tenant body:**
+```json
+{ "name": "Acme Corp", "slug": "acme" }
+```
+> Slug must match `^[a-z0-9_]+$`. A dedicated PostgreSQL schema (`tenant_acme`) is provisioned automatically.
 
-## License
+---
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Boards
+
+All routes require `Authorization` + `X-Tenant-Slug`.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/boards` | List all boards |
+| GET | `/boards/:id` | Get single board |
+| POST | `/boards` | Create board |
+| PATCH | `/boards/:id` | Update board |
+| DELETE | `/boards/:id` | Delete board |
+
+---
+
+### Todos
+
+All routes require `Authorization` + `X-Tenant-Slug`.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/boards/:boardId/todos` | List todos on a board |
+| GET | `/boards/:boardId/todos/:id` | Get single todo |
+| POST | `/boards/:boardId/todos` | Create todo |
+| PATCH | `/boards/:boardId/todos/:id` | Update todo |
+| DELETE | `/boards/:boardId/todos/:id` | Delete todo |
+
+**Todo body:**
+```json
+{
+  "title": "Deploy to production",
+  "description": "Run migrations first",
+  "status": "todo",
+  "assigneeId": "<user-uuid>"
+}
+```
+`status` values: `todo` | `in-progress` | `done`
+
+---
+
+## Real-Time Collaboration
+
+### Connection
+
+```js
+const socket = io('http://localhost:3000/boards', {
+  auth: { token: '<jwt>' }
+});
+```
+
+### Client → Server events
+
+| Event | Payload | Description |
+|---|---|---|
+| `board:join` | `{ boardId, tenantSlug }` | Subscribe to board updates |
+| `board:leave` | `{ boardId, tenantSlug }` | Unsubscribe |
+
+### Server → Client events
+
+| Event | Payload | Description |
+|---|---|---|
+| `todo:created` | `Todo` | A todo was added |
+| `todo:updated` | `Todo` | A todo was changed |
+| `todo:deleted` | `{ id, boardId }` | A todo was removed |
+
+**Room isolation:** rooms are named `{tenantSlug}:{boardId}`, so two tenants sharing a board UUID never receive each other's events.
+
+---
+
+## Architecture & Design Decisions
+
+### Multi-Tenancy — Schema-based + RLS
+
+Each tenant gets a dedicated PostgreSQL schema (`tenant_{slug}`) with its own `boards` and `todos` tables. RLS is enabled as a second defense layer — each table has a policy checking `current_setting('app.current_tenant')`, so even a misconfigured `search_path` cannot leak data across tenants.
+
+`DatabaseService.withTenantClient()` sets both `search_path` and `app.current_tenant` before every query and releases the client in a `finally` block.
+
+### Repository Pattern
+
+Each module has a `*.repository.ts` owning all SQL for that domain. Services call only repositories; controllers call only services. Each layer is independently testable with mocks.
+
+### Real-Time
+
+`TodosService` calls `TodosGateway.broadcastToBoard()` synchronously after every write. For multi-instance deployments, replace this with Redis pub/sub so all API nodes can fan out.
+
+### JWT on WebSockets
+
+`TodosGateway.handleConnection()` verifies the Bearer token before any room join is permitted. Invalid tokens cause an immediate disconnect.
+
+---
+
+## Security
+
+- bcrypt password hashing (cost 12)
+- Tenant slug allowlist regex (`^[a-z0-9_]+$`) prevents SQL injection via schema names
+- `ValidationPipe(whitelist: true)` strips undeclared request properties
+- RLS as defense-in-depth
+- WebSocket auth before any room operation
+
+---
+
+## Trade-offs & Future Improvements
+
+| Area | Current | Improvement |
+|---|---|---|
+| Real-time fan-out | In-process broadcast | Redis pub/sub for multi-instance |
+| Migrations | Plain SQL ordered files | Flyway / proper migration tool with checksums |
+| Authorization | Membership check | Role-based permissions per board |
+| Rate limiting | None | `@nestjs/throttler` per user/tenant |
+| Pagination | None | Cursor-based for large boards |
+
+---
+
+## Project Structure
+
+```
+src/
+├── database/
+│   ├── database.service.ts       # Pool, withTenantClient(), schema provisioning
+│   ├── migrate.ts                # Migration runner
+│   └── migrations/001_public_schema.sql
+├── common/
+│   ├── decorators/               # @CurrentUser, @CurrentTenant, @Public
+│   ├── guards/                   # JwtAuthGuard (global), TenantGuard
+│   ├── middleware/               # TenantMiddleware (X-Tenant-Slug → req.tenant)
+│   └── filters/                  # AllExceptionsFilter
+└── modules/
+    ├── auth/                     # Signup/login, JwtStrategy
+    ├── users/                    # UsersRepository
+    ├── tenants/                  # Tenant CRUD, member management
+    ├── boards/                   # Board CRUD (tenant-scoped)
+    └── todos/                    # Todo CRUD + Socket.io gateway (TodosGateway)
+```
