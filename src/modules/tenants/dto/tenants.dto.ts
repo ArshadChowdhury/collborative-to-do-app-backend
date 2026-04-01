@@ -17,7 +17,7 @@ export class CreateTenantDto {
 
 export class AddMemberDto {
   @IsString()
-  userId: string;
+  email: string;
 
   @IsString()
   role: 'owner' | 'admin' | 'member';

@@ -17,7 +17,7 @@ import { AddMemberDto, CreateTenantDto } from './dto/tenants.dto';
 
 @Controller('tenants')
 export class TenantsController {
-  constructor(private readonly tenantsService: TenantsService) {}
+  constructor(private readonly tenantsService: TenantsService) { }
 
   @Post()
   create(@Body() dto: CreateTenantDto, @CurrentUser() user: User) {
@@ -39,7 +39,7 @@ export class TenantsController {
   @Post('current/members')
   @UseGuards(TenantGuard)
   addMember(@CurrentTenant() tenant: Tenant, @Body() dto: AddMemberDto) {
-    return this.tenantsService.addMember(tenant.id, dto.userId, dto.role);
+    return this.tenantsService.addMember(tenant.id, dto.email, dto.role);
   }
 
   @Delete('current/members/:userId')

@@ -19,7 +19,7 @@ import { CreateTodoDto, UpdateTodoDto } from './dto/todos.dto';
 @Controller('boards/:boardId/todos')
 @UseGuards(TenantGuard)
 export class TodosController {
-  constructor(private readonly todosService: TodosService) {}
+  constructor(private readonly todosService: TodosService) { }
 
   @Get()
   findAll(
@@ -39,31 +39,20 @@ export class TodosController {
   }
 
   @Post()
-  create(
-    @CurrentTenant() tenant: Tenant,
-    @Param('boardId') boardId: string,
-    @Body() dto: CreateTodoDto,
-    @CurrentUser() user: User,
-  ) {
+  create(@CurrentTenant() tenant: Tenant, @Param('boardId') boardId: string,
+    @Body() dto: CreateTodoDto, @CurrentUser() user: User) {
     return this.todosService.create(tenant.slug, boardId, dto, user.id);
   }
 
   @Patch(':id')
-  update(
-    @CurrentTenant() tenant: Tenant,
-    @Param('boardId') boardId: string,
-    @Param('id') id: string,
-    @Body() dto: UpdateTodoDto,
-  ) {
-    return this.todosService.update(tenant.slug, boardId, id, dto);
+  update(@CurrentTenant() tenant: Tenant, @Param('boardId') boardId: string,
+    @Param('id') id: string, @Body() dto: UpdateTodoDto, @CurrentUser() user: User) {
+    return this.todosService.update(tenant.slug, boardId, id, dto, user.id);
   }
 
   @Delete(':id')
-  remove(
-    @CurrentTenant() tenant: Tenant,
-    @Param('boardId') boardId: string,
-    @Param('id') id: string,
-  ) {
-    return this.todosService.remove(tenant.slug, boardId, id);
+  remove(@CurrentTenant() tenant: Tenant, @Param('boardId') boardId: string,
+    @Param('id') id: string, @CurrentUser() user: User) {
+    return this.todosService.remove(tenant.slug, boardId, id, user.id);
   }
 }

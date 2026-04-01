@@ -14,8 +14,7 @@ export class TenantsRepository {
     private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(UserTenant)
     private readonly userTenantRepo: Repository<UserTenant>,
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+
   ) { }
 
   async findById(id: string): Promise<Tenant | null> {
@@ -32,7 +31,7 @@ export class TenantsRepository {
   }
 
   async createTenantForUser(userId: string, slug: string): Promise<void> {
-    const tenant = this.tenantRepo.create({ slug, name: slug }); // or pass a separate `name` param
+    const tenant = this.tenantRepo.create({ slug, name: slug });
     await this.tenantRepo.save(tenant);
 
     const userTenant = this.userTenantRepo.create({
@@ -42,6 +41,7 @@ export class TenantsRepository {
     });
     await this.userTenantRepo.save(userTenant);
   }
+
 
   async addMember(
     tenantId: string,

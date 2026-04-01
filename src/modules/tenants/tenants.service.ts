@@ -6,13 +6,16 @@ import {
 import { TenantConnectionService } from '../../database/tenant-connection.service';
 import { TenantsRepository } from './tenants.repository';
 import { CreateTenantDto } from './dto/tenants.dto';
+import { UsersRepository } from '../users/users.repository';
 
 @Injectable()
 export class TenantsService {
   constructor(
     private readonly tenantsRepo: TenantsRepository,
     private readonly tenantConn: TenantConnectionService,
-  ) {}
+    private readonly usersRepo: UsersRepository,
+
+  ) { }
 
   async create(dto: CreateTenantDto, ownerUserId: string) {
     const existing = await this.tenantsRepo.findBySlug(dto.slug);
@@ -38,10 +41,14 @@ export class TenantsService {
     return this.tenantsRepo.getMembers(tenantId);
   }
 
-  async addMember(tenantId: string, userId: string, role: 'owner' | 'admin' | 'member') {
+  async addMember(tenantId: string, email: string, role: 'owner' | 'admin' | 'member') {
     const tenant = await this.tenantsRepo.findById(tenantId);
     if (!tenant) throw new NotFoundException('Tenant not found');
-    await this.tenantsRepo.addMember(tenantId, userId, role);
+
+    const user = await this.usersRepo.findByEmail(email);
+    if (!user) throw new NotFoundException('No user found with that email address');
+
+    await this.tenantsRepo.addMember(tenantId, user.id, role);
   }
 
   async removeMember(tenantId: string, userId: string) {

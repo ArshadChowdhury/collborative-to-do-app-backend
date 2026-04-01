@@ -10,7 +10,12 @@ export class TodosService {
     private readonly todosRepo: TodosRepository,
     private readonly boardsRepo: BoardsRepository,
     private readonly gateway: TodosGateway,
-  ) {}
+  ) { }
+
+  private async assertBoardExists(tenantSlug: string, boardId: string) {
+    const board = await this.boardsRepo.findById(tenantSlug, boardId);
+    if (!board) throw new NotFoundException('Board not found');
+  }
 
   async findByBoard(tenantSlug: string, boardId: string) {
     await this.assertBoardExists(tenantSlug, boardId);
@@ -25,12 +30,7 @@ export class TodosService {
     return todo;
   }
 
-  async create(
-    tenantSlug: string,
-    boardId: string,
-    dto: CreateTodoDto,
-    userId: string,
-  ) {
+  async create(tenantSlug: string, boardId: string, dto: CreateTodoDto, userId: string) {
     await this.assertBoardExists(tenantSlug, boardId);
     const todo = await this.todosRepo.create(tenantSlug, {
       board_id: boardId,
@@ -41,48 +41,46 @@ export class TodosService {
       created_by: userId,
     });
 
-    this.gateway.broadcastToBoard(tenantSlug, boardId, 'todo:created', todo);
+    this.gateway.broadcastToBoard(tenantSlug, boardId, 'todo:created', {
+      todo,
+      boardId,
+      tenantSlug,
+      actorId: userId,  // ← comes from JWT, not DTO
+    });
     return todo;
   }
 
-  async update(
-    tenantSlug: string,
-    boardId: string,
-    id: string,
-    dto: UpdateTodoDto,
-  ) {
+  async update(tenantSlug: string, boardId: string, id: string, dto: UpdateTodoDto, userId: string) {
     await this.assertBoardExists(tenantSlug, boardId);
-    const updateData: Parameters<typeof this.todosRepo.update>[2] = {
+    const updateData = {
       title: dto.title,
       description: dto.description,
       status: dto.status,
+      ...(dto.assigneeId !== undefined && { assignee_id: dto.assigneeId }),
     };
-    if (dto.assigneeId !== undefined) {
-      updateData.assignee_id = dto.assigneeId;
-    }
     const todo = await this.todosRepo.update(tenantSlug, id, updateData);
-    if (!todo || todo.board_id !== boardId)
-      throw new NotFoundException('Todo not found');
+    if (!todo || todo.board_id !== boardId) throw new NotFoundException('Todo not found');
 
-    this.gateway.broadcastToBoard(tenantSlug, boardId, 'todo:updated', todo);
+    this.gateway.broadcastToBoard(tenantSlug, boardId, 'todo:updated', {
+      todo,
+      boardId,
+      tenantSlug,
+      actorId: userId,  // ← comes from JWT, not DTO
+    });
     return todo;
   }
 
-  async remove(tenantSlug: string, boardId: string, id: string) {
+  async remove(tenantSlug: string, boardId: string, id: string, userId: string) {
     await this.assertBoardExists(tenantSlug, boardId);
     const todo = await this.todosRepo.delete(tenantSlug, id);
-    if (!todo || todo.board_id !== boardId)
-      throw new NotFoundException('Todo not found');
+    if (!todo || todo.board_id !== boardId) throw new NotFoundException('Todo not found');
 
     this.gateway.broadcastToBoard(tenantSlug, boardId, 'todo:deleted', {
-      id: todo.id,
+      todoId: todo.id,
       boardId,
+      tenantSlug,
+      actorId: userId,  // ← comes from JWT, not DTO
     });
     return { deleted: true };
-  }
-
-  private async assertBoardExists(tenantSlug: string, boardId: string) {
-    const board = await this.boardsRepo.findById(tenantSlug, boardId);
-    if (!board) throw new NotFoundException('Board not found');
   }
 }

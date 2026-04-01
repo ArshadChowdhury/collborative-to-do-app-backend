@@ -7,12 +7,14 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersRepository } from '../users/users.repository';
 import { LoginDto, SignupDto } from './dto/auth.dto';
+import { TenantsRepository } from '../tenants/tenants.repository';
 import { User } from '../users/users.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersRepo: UsersRepository,
+    private readonly tenantsRepo: TenantsRepository, // ← inject this
     private readonly jwtService: JwtService,
   ) { }
 
@@ -30,16 +32,21 @@ export class AuthService {
     const tenantSlug = `${baseSlug}_${Math.random().toString(36).slice(2, 6)}`;
 
     const password_hash = await bcrypt.hash(dto.password, 12);
+    // const user = await this.usersRepo.create({
+    //   email: dto.email,
+    //   password_hash,
+    //   display_name: dto.displayName,
+    // });
+
     const user = await this.usersRepo.create({
       email: dto.email,
       password_hash,
       display_name: dto.displayName,
     });
-
-    await this.usersRepo.createTenantForUser(user.id, tenantSlug);
-
-    // in signup, replace the last return with:
+    await this.tenantsRepo.createTenantForUser(user.id, tenantSlug); // ← use tenantsRepo
     const userWithTenant = await this.usersRepo.findById(user.id);
+
+
     if (!userWithTenant) throw new Error('User not found after creation');
 
     const createdTenant = userWithTenant.userTenants[0].tenant;
